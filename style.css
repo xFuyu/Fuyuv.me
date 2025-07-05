@@ -1,5 +1,5 @@
 :root {
-  --b100: #0D0126;
+  --b100: #1e0000;
   --b75: #400135;
   --b50: #590232;
   --b25: #8C0335;
@@ -14,4 +14,25 @@
 
 .hypertext {
     color: var(--t1);
+}
+
+.element {
+  max-width: fit-content;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.button1{
+  min-width: 1000;
+  height: 100;
+  padding: 15px 32px;
+  margin: 4px 2px;
+  transition-duration: 0.1s;
+  border:none;
+  font-size: medium;
+}
+
+.button1:hover {
+  background-color: var(--b50);
+  color: var(--t1);
 }
