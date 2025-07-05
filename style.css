@@ -1,0 +1,17 @@
+:root {
+  --b100: #0D0126;
+  --b75: #400135;
+  --b50: #590232;
+  --b25: #8C0335;
+  --b0: #A6032F;
+  --t1: white;
+}
+
+.body {
+    background-color: var(--b100);
+    color: var(--t1);
+}
+
+.hypertext {
+    color: var(--t1);
+}
