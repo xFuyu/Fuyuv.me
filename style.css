@@ -368,3 +368,41 @@ body::after{
   0%,100%{transform:rotate(calc(var(--amp)*-1));}
   50%{transform:rotate(var(--amp));}
 }
+
+
+
+/* Topbar / Header Layout */
+.topbar{
+  position: sticky;   /* bleibt oben beim scrollen */
+  top: 0;
+  padding: 18px 18px 10px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+  z-index: 10000;
+}
+
+/* Slots */
+.topbar-left{ justify-self: start; }
+.topbar-center{ justify-self: center; }
+.topbar-right{ justify-self: end; }
+
+/* Katze */
+.kitty{
+  font-size: 34px;
+  line-height: 1;
+  letter-spacing: 2px;
+  color: rgba(255,255,255,0.95);
+  text-shadow:
+    0 2px 10px rgba(0,0,0,0.35),
+    0 0 18px rgba(232,161,168,0.25);
+  user-select: none;
+}
+
+/* Topbar Buttons nicht 100% breit */
+.topbar .button1{
+  width: auto;
+  min-width: 150px;
+  padding: 12px 18px;
+}
