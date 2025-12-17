@@ -1,51 +1,370 @@
+/* ===============================
+   Farbpalette (deine)
+   =============================== */
 :root {
   --b100: #1e0000;
-  --b75: #400135;
-  --b50: #590232;
-  --b25: #8C0335;
-  --b0: #A6032F;
-  --t1: white;
+  --b75:  #400135;
+  --b50:  #590232;
+  --b25:  #8C0335;
+  --b0:   #A6032F;
+  --t1:   white;
 }
 
-.body {
-    background-color: var(--b100);
-    color: var(--t1);
-}
-
-.hypertext {
-    color: var(--t1);
-}
-
-.centered {
-  max-width: fit-content;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-
-
-.element {
-  max-width: fit-content;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.button1{
-  margin: auto;
-  width: 100%;
-  height: 100;
-  padding: 15px 32px;
-  margin: 4px 3px;
-  transition-duration: 0.1s;
-  border:2;
-  border:none;
-  font-size: medium;
-  border-radius: 5px;
-}
-
-.button1:hover {
-  background-color: var(--b50);
+/* ===============================
+   Base / Layout
+   =============================== */
+body{
+  margin: 0;
+  min-height: 100vh;
   color: var(--t1);
-  border-radius: 5px;
-  
+  position: relative;
+  overflow-x: hidden;
+
+  /* Grund-Gradient aus deiner Palette */
+  background:
+    radial-gradient(
+      ellipse at bottom,
+      var(--b50) 0%,
+      var(--b75) 45%,
+      var(--b100) 75%
+    );
+}
+
+/* Hyperlinks */
+.hypertext{
+  color: var(--t1);
+}
+
+/* Center helpers (wie bei dir) */
+.centered{
+  max-width: fit-content;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.element{
+  max-width: fit-content;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ===============================
+   Godrays + Vignette (Overlay)
+   =============================== */
+body::before{
+  content: "";
+  position: fixed;
+  inset: -20%;
+  pointer-events: none;
+  z-index: -1;
+
+  background:
+    repeating-linear-gradient(
+      115deg,
+      rgba(255,255,255,0.045) 0px,
+      rgba(255,255,255,0.045) 2px,
+      rgba(255,255,255,0.0) 8px,
+      rgba(255,255,255,0.0) 22px
+    );
+
+  mix-blend-mode: soft-light;
+  opacity: 0.55;
+  transform: translateZ(0);
+
+  animation: godraysMove 60s linear infinite;
+}
+
+@keyframes godraysMove{
+  from { transform: translateX(-10%) translateZ(0); }
+  to   { transform: translateX(10%)  translateZ(0); }
+}
+
+body::after{
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+
+  background:
+    radial-gradient(
+      ellipse at center,
+      rgba(0,0,0,0) 40%,
+      rgba(30,0,0,0.45) 75%,
+      rgba(30,0,0,0.85) 100%
+    );
+}
+
+/* ===============================
+   Buttons (verbessert)
+   =============================== */
+.button1{
+  width: 100%;
+  padding: 14px 32px;
+  margin: 6px 0;
+
+  background: rgba(255, 255, 255, 0.92);
+  color: #2b0000;
+
+  border: none;
+  border-radius: 10px;
+
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+
+  box-shadow:
+    0 6px 16px rgba(0,0,0,0.25),
+    inset 0 1px 0 rgba(255,255,255,0.6);
+
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    background 0.18s ease;
+}
+
+.button1:hover{
+  background: rgba(255, 240, 243, 0.96);
+  transform: translateY(-2px);
+
+  box-shadow:
+    0 10px 24px rgba(0,0,0,0.35),
+    0 0 18px rgba(232, 161, 168, 0.35),
+    inset 0 1px 0 rgba(255,255,255,0.7);
+}
+
+.button1:active{
+  transform: translateY(0);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+}
+
+.button1:focus-visible{
+  outline: 2px solid rgba(232,161,168,0.6);
+  outline-offset: 3px;
+}
+
+/* ===============================
+   Petal Regen (Layer + Petals)
+   =============================== */
+.petal-layer{
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 9998; /* unter roses (9999), über content */
+}
+
+.petal{
+  position: absolute;
+  top: -10vh;
+  left: 0;
+  width: 14px;
+  height: 10px;
+  opacity: 0.85;
+
+  border-radius: 80% 20% 80% 20%;
+  background: rgba(243, 192, 198, 0.9);
+  box-shadow: inset -2px -2px 0 rgba(201, 120, 130, 0.35);
+
+  will-change: transform;
+  transform: translate3d(0,0,0) rotate(0deg);
+  animation: fall var(--dur) linear forwards;
+}
+
+@keyframes fall{
+  0%{
+    transform: translate3d(var(--x0), -12vh, 0) rotate(0deg);
+  }
+  100%{
+    transform: translate3d(var(--x1), 110vh, 0) rotate(var(--rot));
+  }
+}
+
+@media (prefers-reduced-motion: reduce){
+  .petal{ animation: none; display: none; }
+}
+
+/* ===============================
+   Pixel Roses (3 Typen, rundere Köpfe)
+   =============================== */
+:root{
+  --pixel: 8px;
+  --overlap: 0.9px;
+
+  /* Petal Farben */
+  --p1:#e8a1a8;
+  --p2:#f3c0c6;
+  --p3:#f7d3d8;
+  --pd:#c97882;
+
+  --pB1:#e7a6bf;
+  --pB2:#f6cfe0;
+  --pBd:#bf728c;
+
+  --pC1:#e8a9a1;
+  --pC2:#f4c4bc;
+  --pCd:#c97a72;
+
+  /* Grün */
+  --stem:#7fa88c;
+  --stemD:#668f78;
+  --leaf:#6f9d7d;
+  --leaf2:#8bb89a;
+}
+
+.rose-strip{
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  height: 270px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-evenly;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+.rose-wrap-outer{
+  display:flex;
+  align-items:flex-end;
+}
+
+.rose-wrap{
+  display:flex;
+  align-items:flex-end;
+  transform-origin: bottom center;
+  backface-visibility: hidden;
+  will-change: transform;
+  --amp:1.2deg;
+  animation: sway 3200ms ease-in-out infinite;
+}
+
+/* Anti-riss: Pixel minimal größer als Abstand */
+.rose{
+  width: calc(var(--pixel) + var(--overlap));
+  height: calc(var(--pixel) + var(--overlap));
+  background: var(--stem);
+  transform-origin: bottom center;
+  opacity:0;
+  animation: grow 1400ms steps(6) forwards;
+}
+
+/* TYPE A – rund & klassisch */
+.rose--a{
+  box-shadow:
+    /* Stiel */
+    0 calc(var(--pixel)*-1) var(--stem),
+    0 calc(var(--pixel)*-2) var(--stem),
+    0 calc(var(--pixel)*-3) var(--stem),
+    0 calc(var(--pixel)*-4) var(--stem),
+    0 calc(var(--pixel)*-5) var(--stem),
+    0 calc(var(--pixel)*-6) var(--stem),
+    0 calc(var(--pixel)*-7) var(--stem),
+
+    /* Blätter */
+    calc(var(--pixel)*-2) calc(var(--pixel)*-3) var(--leaf),
+    calc(var(--pixel)* 2) calc(var(--pixel)*-4) var(--leaf2),
+
+    /* Kopf – breite Basis */
+    calc(var(--pixel)*-2) calc(var(--pixel)*-8) var(--p1),
+    calc(var(--pixel)*-1) calc(var(--pixel)*-8) var(--p1),
+    0                    calc(var(--pixel)*-8) var(--p1),
+    calc(var(--pixel)* 1) calc(var(--pixel)*-8) var(--p1),
+    calc(var(--pixel)* 2) calc(var(--pixel)*-8) var(--p1),
+
+    /* Mitte */
+    calc(var(--pixel)*-2) calc(var(--pixel)*-9) var(--p1),
+    calc(var(--pixel)*-1) calc(var(--pixel)*-9) var(--p2),
+    0                    calc(var(--pixel)*-9) var(--p2),
+    calc(var(--pixel)* 1) calc(var(--pixel)*-9) var(--p2),
+    calc(var(--pixel)* 2) calc(var(--pixel)*-9) var(--p1),
+
+    /* Rundes Dach */
+    calc(var(--pixel)*-1) calc(var(--pixel)*-10) var(--p2),
+    0                    calc(var(--pixel)*-10) var(--pd),
+    calc(var(--pixel)* 1) calc(var(--pixel)*-10) var(--p2),
+
+    0 calc(var(--pixel)*-11) var(--pd);
+}
+
+/* TYPE B – runde Knospe */
+.rose--b{
+  box-shadow:
+    /* hoher Stiel */
+    0 calc(var(--pixel)*-1) var(--stem),
+    0 calc(var(--pixel)*-2) var(--stem),
+    0 calc(var(--pixel)*-3) var(--stem),
+    0 calc(var(--pixel)*-4) var(--stem),
+    0 calc(var(--pixel)*-5) var(--stem),
+    0 calc(var(--pixel)*-6) var(--stem),
+    0 calc(var(--pixel)*-7) var(--stem),
+    0 calc(var(--pixel)*-8) var(--stem),
+    0 calc(var(--pixel)*-9) var(--stem),
+
+    /* kleine Blätter */
+    calc(var(--pixel)*-1) calc(var(--pixel)*-5) var(--leaf),
+    calc(var(--pixel)* 1) calc(var(--pixel)*-6) var(--leaf2),
+
+    /* Knospenkopf – rund */
+    calc(var(--pixel)*-1) calc(var(--pixel)*-10) var(--pB1),
+    0                    calc(var(--pixel)*-10) var(--pB1),
+    calc(var(--pixel)* 1) calc(var(--pixel)*-10) var(--pB1),
+
+    calc(var(--pixel)*-1) calc(var(--pixel)*-11) var(--pB2),
+    0                    calc(var(--pixel)*-11) var(--pBd),
+    calc(var(--pixel)* 1) calc(var(--pixel)*-11) var(--pB2),
+
+    0 calc(var(--pixel)*-12) var(--pBd);
+}
+
+/* TYPE C – große runde Blüte */
+.rose--c{
+  box-shadow:
+    /* Stiel */
+    0 calc(var(--pixel)*-1) var(--stem),
+    0 calc(var(--pixel)*-2) var(--stem),
+    0 calc(var(--pixel)*-3) var(--stem),
+    0 calc(var(--pixel)*-4) var(--stem),
+    0 calc(var(--pixel)*-5) var(--stem),
+
+    /* Blätter breit */
+    calc(var(--pixel)*-3) calc(var(--pixel)*-3) var(--leaf2),
+    calc(var(--pixel)* 3) calc(var(--pixel)*-3) var(--leaf2),
+
+    /* Untere Blütenreihe */
+    calc(var(--pixel)*-3) calc(var(--pixel)*-7) var(--pC1),
+    calc(var(--pixel)*-2) calc(var(--pixel)*-7) var(--pC1),
+    calc(var(--pixel)*-1) calc(var(--pixel)*-7) var(--pC1),
+    0                    calc(var(--pixel)*-7) var(--pC1),
+    calc(var(--pixel)* 1) calc(var(--pixel)*-7) var(--pC1),
+    calc(var(--pixel)* 2) calc(var(--pixel)*-7) var(--pC1),
+    calc(var(--pixel)* 3) calc(var(--pixel)*-7) var(--pC1),
+
+    /* Mitte */
+    calc(var(--pixel)*-2) calc(var(--pixel)*-8) var(--pC2),
+    calc(var(--pixel)*-1) calc(var(--pixel)*-8) var(--pC2),
+    0                    calc(var(--pixel)*-8) var(--pC2),
+    calc(var(--pixel)* 1) calc(var(--pixel)*-8) var(--pC2),
+    calc(var(--pixel)* 2) calc(var(--pixel)*-8) var(--pC2),
+
+    /* Rundes Dach */
+    calc(var(--pixel)*-1) calc(var(--pixel)*-9) var(--pC2),
+    0                    calc(var(--pixel)*-9) var(--pCd),
+    calc(var(--pixel)* 1) calc(var(--pixel)*-9) var(--pC2),
+
+    0 calc(var(--pixel)*-10) var(--pCd);
+}
+
+/* Roses: Wachstum + Wind */
+@keyframes grow{
+  0%{opacity:0;transform:translateY(calc(var(--pixel)*3)) scaleY(0);}
+  30%{opacity:1;}
+  100%{opacity:1;transform:translateY(0) scaleY(1);}
+}
+
+@keyframes sway{
+  0%,100%{transform:rotate(calc(var(--amp)*-1));}
+  50%{transform:rotate(var(--amp));}
 }
