@@ -62,20 +62,6 @@ function json(obj, status = 200) {
 export async function onRequestGet(context) {
   const { request, env } = context;
   const url = new URL(request.url);
-
-  // TEMPORÄRER DEBUG-MODUS: zeigt nur die NAMEN der verfügbaren env-Variablen,
-  // niemals Werte. Aufrufbar über /api/precursor?debug=1
-  // Nach dem Debuggen wieder entfernen.
-  if (url.searchParams.get("debug") === "1") {
-    return json({
-      debug: true,
-      availableEnvKeys: Object.keys(env || {}),
-      hasHypixelKey: Boolean(env && env.HYPIXEL_API_KEY),
-      cfPagesBranch: env && env.CF_PAGES_BRANCH,
-      cfPages: env && env.CF_PAGES,
-    });
-  }
-
   const ign = (url.searchParams.get("ign") || "").trim();
 
   // Minecraft-Namen: 1-16 Zeichen, nur Buchstaben/Zahlen/Unterstrich
@@ -97,7 +83,16 @@ export async function onRequestGet(context) {
       `https://api.minecraftservices.com/minecraft/profile/lookup/name/${encodeURIComponent(ign)}`
     );
     if (!mojangRes.ok) {
-      return json({ success: false, error: `Spieler "${ign}" wurde nicht gefunden.` }, 404);
+      const bodyText = await mojangRes.text().catch(() => "");
+      return json(
+        {
+          success: false,
+          error: `Spieler "${ign}" wurde nicht gefunden.`,
+          debugMojangStatus: mojangRes.status,
+          debugMojangBody: bodyText.slice(0, 300),
+        },
+        404
+      );
     }
     const mojangData = await mojangRes.json();
     uuid = mojangData.id;
