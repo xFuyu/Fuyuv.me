@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+
+<title>Fuyu V - Precursor Apparatus Trade Rechner</title>
+<link rel="stylesheet" href="style.css" />
+<style>
+  .tool-box {
+    max-width: 480px;
+    margin: 0 auto;
+    text-align: left;
+  }
+  .tool-row {
+    display: grid;
+    grid-template-columns: 1fr 70px 70px;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .tool-row input {
+    width: 100%;
+    box-sizing: border-box;
+    text-align: center;
+  }
+  .tool-header {
+    display: grid;
+    grid-template-columns: 1fr 70px 70px;
+    gap: 8px;
+    font-size: 0.85em;
+    margin-bottom: 6px;
+    opacity: 0.8;
+  }
+  .trade-line {
+    margin: 6px 0;
+    padding: 8px 10px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+  }
+  #output {
+    margin-top: 1.2em;
+  }
+</style>
+</head>
+
+<body class="body">
+<div class="rose-strip" id="roseStrip"></div>
+
+<script src="roses.js"></script>
+
+<div class="petal-layer" id="petalLayer" aria-hidden="true"></div>
+<script src="petals.js"></script>
+
+<div class="element">
+<h1>Precursor Apparatus Trade Rechner</h1>
+</div>
+
+<div class="element tool-box">
+<p>Trag eure Bestände ein und findet raus, wer wem was gegen was tauschen sollte (immer 1:1).</p>
+
+<div class="tool-header">
+  <div>Teil</div>
+  <div>Spieler 1</div>
+  <div>Spieler 2</div>
+</div>
+
+<div id="rows"></div>
+
+<button class="button1" id="calcBtn">Trades berechnen</button>
+
+<div id="output"></div>
+</div>
+
+<div class="element">
+<a href="tools.html"><button class="button1">Zurück zu Tools</button></a>
+</div>
+
+<script>
+  const parts = [
+    "Synthetic Heart",
+    "Superlite Motor",
+    "Robotron Reflector",
+    "FTX 3070",
+    "Electron Transmitter",
+    "Control Switch",
+  ];
+
+  const rowsEl = document.getElementById("rows");
+  rowsEl.innerHTML = parts
+    .map(
+      (p, i) => `
+    <div class="tool-row">
+      <div>${p}</div>
+      <input type="number" min="0" step="1" value="0" id="p1-${i}" />
+      <input type="number" min="0" step="1" value="0" id="p2-${i}" />
+    </div>`
+    )
+    .join("");
+
+  function calcTrades() {
+    const p1 = parts.map((_, i) => parseInt(document.getElementById(`p1-${i}`).value) || 0);
+    const p2 = parts.map((_, i) => parseInt(document.getElementById(`p2-${i}`).value) || 0);
+
+    let diffs = parts.map((_, i) => p1[i] - p2[i]);
+
+    const trades = [];
+    while (true) {
+      const maxVal = Math.max(...diffs);
+      const minVal = Math.min(...diffs);
+      if (maxVal <= 0 || minVal >= 0) break;
+
+      const iMax = diffs.indexOf(maxVal);
+      const iMin = diffs.indexOf(minVal);
+      const amount = Math.min(maxVal, -minVal);
+
+      trades.push({ give: parts[iMax], get: parts[iMin], amount });
+
+      diffs[iMax] -= amount;
+      diffs[iMin] += amount;
+    }
+
+    const rest = parts
+      .map((p, i) => ({ part: p, diff: diffs[i] }))
+      .filter((r) => r.diff !== 0);
+
+    const out = document.getElementById("output");
+    let html = "";
+
+    if (trades.length === 0) {
+      html += `<div class="trade-line">Keine sinnvollen Trades gefunden - entweder schon ausgeglichen oder es fehlen Eingaben.</div>`;
+    } else {
+      html += trades
+        .map(
+          (t) =>
+            `<div class="trade-line">Spieler 1 gibt <b>${t.amount}x ${t.give}</b> &rarr; bekommt <b>${t.amount}x ${t.get}</b></div>`
+        )
+        .join("");
+    }
+
+    if (rest.length > 0) {
+      html += `<div class="trade-line" style="opacity:0.7">Nicht traden möglich: ${rest
+        .map((r) => `${Math.abs(r.diff)}x ${r.part} (${r.diff > 0 ? "Spieler 1" : "Spieler 2"})`)
+        .join(", ")}</div>`;
+    }
+
+    out.innerHTML = html;
+  }
+
+  document.getElementById("calcBtn").addEventListener("click", calcTrades);
+</script>
+</body>
+</html>
