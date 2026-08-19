@@ -76,34 +76,26 @@ export async function onRequestGet(context) {
     );
   }
 
-  // 1. Name -> UUID (offizielle Mojang-Schnittstelle, kein Key nötig)
+  // Name -> UUID über PlayerDB (Drittanbieter-Proxy vor der offiziellen
+  // Mojang-API). Mojangs eigene API blockt Anfragen von Cloud-/Worker-IP-
+  // Bereichen mit einer WAF, weshalb ein direkter Aufruf von hier aus
+  // zuverlässig mit 403 scheitert. PlayerDB ist speziell für serverseitige
+  // Lookups wie diesen gedacht.
   let uuid;
   try {
-    const mojangRes = await fetch(
-      `https://api.minecraftservices.com/minecraft/profile/lookup/name/${encodeURIComponent(ign)}`,
-      {
-        headers: {
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-          Accept: "application/json",
-        },
-      }
-    );
+    const mojangRes = await fetch(`https://playerdb.co/api/player/minecraft/${encodeURIComponent(ign)}`, {
+      headers: { Accept: "application/json" },
+    });
     if (!mojangRes.ok) {
-      const bodyText = await mojangRes.text().catch(() => "");
-      return json(
-        {
-          success: false,
-          error: `Spieler "${ign}" wurde nicht gefunden.`,
-          debugMojangStatus: mojangRes.status,
-          debugMojangBody: bodyText.slice(0, 300),
-        },
-        404
-      );
+      return json({ success: false, error: `Spieler "${ign}" wurde nicht gefunden.` }, 404);
     }
     const mojangData = await mojangRes.json();
-    uuid = mojangData.id;
+    if (!mojangData.success || !mojangData.data || !mojangData.data.player) {
+      return json({ success: false, error: `Spieler "${ign}" wurde nicht gefunden.` }, 404);
+    }
+    uuid = mojangData.data.player.raw_id || mojangData.data.player.id.replace(/-/g, "");
   } catch (e) {
-    return json({ success: false, error: "Mojang-API war nicht erreichbar." }, 502);
+    return json({ success: false, error: "Name-Lookup-Dienst war nicht erreichbar." }, 502);
   }
 
   // 2. SkyBlock-Profile von Hypixel holen
