@@ -71,6 +71,8 @@ export async function onRequestGet(context) {
       debug: true,
       availableEnvKeys: Object.keys(env || {}),
       hasHypixelKey: Boolean(env && env.HYPIXEL_API_KEY),
+      cfPagesBranch: env && env.CF_PAGES_BRANCH,
+      cfPages: env && env.CF_PAGES,
     });
   }
 
