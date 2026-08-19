@@ -7,9 +7,32 @@
 <link rel="stylesheet" href="style.css" />
 <style>
   .tool-box {
-    max-width: 480px;
+    max-width: 520px;
     margin: 0 auto;
     text-align: left;
+  }
+  .ign-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+    margin-bottom: 8px;
+    align-items: center;
+  }
+  .ign-row input {
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .ign-status {
+    font-size: 0.8em;
+    min-height: 1.2em;
+    margin-bottom: 10px;
+    opacity: 0.85;
+  }
+  .ign-status.error {
+    color: #ff8080;
+  }
+  .ign-status.ok {
+    color: #8fd18f;
   }
   .tool-row {
     display: grid;
@@ -40,6 +63,11 @@
   #output {
     margin-top: 1.2em;
   }
+  .section-label {
+    font-size: 0.85em;
+    opacity: 0.7;
+    margin: 1em 0 4px;
+  }
 </style>
 </head>
 
@@ -56,7 +84,21 @@
 </div>
 
 <div class="element tool-box">
-<p>Trag eure Bestände ein und findet raus, wer wem was gegen was tauschen sollte (immer 1:1).</p>
+<p>Trag eure Bestände ein (manuell oder automatisch per Hypixel-Account) und findet raus, wer wem was gegen was tauschen sollte (immer 1:1).</p>
+
+<div class="section-label">Spieler 1 - automatisch laden (optional)</div>
+<div class="ign-row">
+  <input type="text" id="p1-ign" placeholder="Minecraft-Name" maxlength="16" />
+  <button class="button1" id="p1-load">Laden</button>
+</div>
+<div class="ign-status" id="p1-status"></div>
+
+<div class="section-label">Spieler 2 - automatisch laden (optional)</div>
+<div class="ign-row">
+  <input type="text" id="p2-ign" placeholder="Minecraft-Name" maxlength="16" />
+  <button class="button1" id="p2-load">Laden</button>
+</div>
+<div class="ign-status" id="p2-status"></div>
 
 <div class="tool-header">
   <div>Teil</div>
@@ -77,12 +119,12 @@
 
 <script>
   const parts = [
-    "Synthetic Heart",
-    "Superlite Motor",
-    "Robotron Reflector",
-    "FTX 3070",
-    "Electron Transmitter",
-    "Control Switch",
+    { label: "Synthetic Heart", key: "SyntheticHeart" },
+    { label: "Superlite Motor", key: "SuperliteMotor" },
+    { label: "Robotron Reflector", key: "RobotronReflector" },
+    { label: "FTX 3070", key: "FTX3070" },
+    { label: "Electron Transmitter", key: "ElectronTransmitter" },
+    { label: "Control Switch", key: "ControlSwitch" },
   ];
 
   const rowsEl = document.getElementById("rows");
@@ -90,12 +132,56 @@
     .map(
       (p, i) => `
     <div class="tool-row">
-      <div>${p}</div>
+      <div>${p.label}</div>
       <input type="number" min="0" step="1" value="0" id="p1-${i}" />
       <input type="number" min="0" step="1" value="0" id="p2-${i}" />
     </div>`
     )
     .join("");
+
+  async function loadFromHypixel(playerNum) {
+    const ignInput = document.getElementById(`p${playerNum}-ign`);
+    const statusEl = document.getElementById(`p${playerNum}-status`);
+    const ign = ignInput.value.trim();
+
+    if (!ign) {
+      statusEl.textContent = "Bitte einen Namen eingeben.";
+      statusEl.className = "ign-status error";
+      return;
+    }
+
+    statusEl.textContent = "Lade...";
+    statusEl.className = "ign-status";
+
+    try {
+      const res = await fetch(`/api/precursor?ign=${encodeURIComponent(ign)}`);
+      const data = await res.json();
+
+      if (!data.success) {
+        statusEl.textContent = data.error || "Unbekannter Fehler.";
+        statusEl.className = "ign-status error";
+        return;
+      }
+
+      parts.forEach((p, i) => {
+        document.getElementById(`p${playerNum}-${i}`).value = data.counts[p.key] ?? 0;
+      });
+
+      if (data.debugSampleKeys) {
+        statusEl.textContent = `Geladen, aber keiner der 6 Teile gefunden. Beispiel-Sack-Keys: ${data.debugSampleKeys.join(", ")}`;
+        statusEl.className = "ign-status error";
+      } else {
+        statusEl.textContent = `Geladen: ${data.ign} (${data.profileName})`;
+        statusEl.className = "ign-status ok";
+      }
+    } catch (e) {
+      statusEl.textContent = "Verbindung fehlgeschlagen.";
+      statusEl.className = "ign-status error";
+    }
+  }
+
+  document.getElementById("p1-load").addEventListener("click", () => loadFromHypixel(1));
+  document.getElementById("p2-load").addEventListener("click", () => loadFromHypixel(2));
 
   function calcTrades() {
     const p1 = parts.map((_, i) => parseInt(document.getElementById(`p1-${i}`).value) || 0);
@@ -113,14 +199,14 @@
       const iMin = diffs.indexOf(minVal);
       const amount = Math.min(maxVal, -minVal);
 
-      trades.push({ give: parts[iMax], get: parts[iMin], amount });
+      trades.push({ give: parts[iMax].label, get: parts[iMin].label, amount });
 
       diffs[iMax] -= amount;
       diffs[iMin] += amount;
     }
 
     const rest = parts
-      .map((p, i) => ({ part: p, diff: diffs[i] }))
+      .map((p, i) => ({ part: p.label, diff: diffs[i] }))
       .filter((r) => r.diff !== 0);
 
     const out = document.getElementById("output");
