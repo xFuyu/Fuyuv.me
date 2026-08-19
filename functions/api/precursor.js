@@ -62,6 +62,18 @@ function json(obj, status = 200) {
 export async function onRequestGet(context) {
   const { request, env } = context;
   const url = new URL(request.url);
+
+  // TEMPORÄRER DEBUG-MODUS: zeigt nur die NAMEN der verfügbaren env-Variablen,
+  // niemals Werte. Aufrufbar über /api/precursor?debug=1
+  // Nach dem Debuggen wieder entfernen.
+  if (url.searchParams.get("debug") === "1") {
+    return json({
+      debug: true,
+      availableEnvKeys: Object.keys(env || {}),
+      hasHypixelKey: Boolean(env && env.HYPIXEL_API_KEY),
+    });
+  }
+
   const ign = (url.searchParams.get("ign") || "").trim();
 
   // Minecraft-Namen: 1-16 Zeichen, nur Buchstaben/Zahlen/Unterstrich
