@@ -187,6 +187,9 @@
     const p1 = parts.map((_, i) => parseInt(document.getElementById(`p1-${i}`).value) || 0);
     const p2 = parts.map((_, i) => parseInt(document.getElementById(`p2-${i}`).value) || 0);
 
+    const p1Name = document.getElementById("p1-ign").value.trim() || "Spieler 1";
+    const p2Name = document.getElementById("p2-ign").value.trim() || "Spieler 2";
+
     let diffs = parts.map((_, i) => p1[i] - p2[i]);
 
     const trades = [];
@@ -199,11 +202,27 @@
       const iMin = diffs.indexOf(minVal);
       const amount = Math.min(maxVal, -minVal);
 
-      trades.push({ give: parts[iMax].label, get: parts[iMin].label, amount });
+      trades.push({ give: parts[iMax].label, get: parts[iMin].label, amount, giveIdx: iMax, getIdx: iMin });
 
       diffs[iMax] -= amount;
       diffs[iMin] += amount;
     }
+
+    // Bestände nach den Trades simulieren, um Crafts vorher/nachher zu vergleichen
+    const p1After = [...p1];
+    const p2After = [...p2];
+    trades.forEach((t) => {
+      p1After[t.giveIdx] -= t.amount;
+      p1After[t.getIdx] += t.amount;
+      p2After[t.giveIdx] += t.amount;
+      p2After[t.getIdx] -= t.amount;
+    });
+
+    const craftsBefore = (inv) => Math.min(...inv);
+    const p1CraftsBefore = craftsBefore(p1);
+    const p2CraftsBefore = craftsBefore(p2);
+    const p1CraftsAfter = craftsBefore(p1After);
+    const p2CraftsAfter = craftsBefore(p2After);
 
     const rest = parts
       .map((p, i) => ({ part: p.label, diff: diffs[i] }))
@@ -212,20 +231,36 @@
     const out = document.getElementById("output");
     let html = "";
 
+    // Ergebnis-Zusammenfassung: Crafts vorher -> nachher
+    html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1rem">`;
+    [
+      { name: p1Name, before: p1CraftsBefore, after: p1CraftsAfter },
+      { name: p2Name, before: p2CraftsBefore, after: p2CraftsAfter },
+    ].forEach((p) => {
+      const improvement = p.after - p.before;
+      html += `<div style="background:var(--surface-1);border-radius:var(--radius);padding:0.75rem 1rem">
+        <div style="font-size:13px;color:var(--text-secondary);margin-bottom:4px">${p.name}</div>
+        <div style="font-size:20px;font-weight:500">${p.before} &rarr; ${p.after} Crafts${
+        improvement > 0 ? ` <span style="font-size:13px;color:#8fd18f">(+${improvement})</span>` : ""
+      }</div>
+      </div>`;
+    });
+    html += `</div>`;
+
     if (trades.length === 0) {
       html += `<div class="trade-line">Keine sinnvollen Trades gefunden - entweder schon ausgeglichen oder es fehlen Eingaben.</div>`;
     } else {
       html += trades
         .map(
           (t) =>
-            `<div class="trade-line">Spieler 1 gibt <b>${t.amount}x ${t.give}</b> &rarr; bekommt <b>${t.amount}x ${t.get}</b></div>`
+            `<div class="trade-line">${p1Name} gibt <b>${t.amount}x ${t.give}</b> &rarr; bekommt <b>${t.amount}x ${t.get}</b></div>`
         )
         .join("");
     }
 
     if (rest.length > 0) {
       html += `<div class="trade-line" style="opacity:0.7">Nicht traden möglich: ${rest
-        .map((r) => `${Math.abs(r.diff)}x ${r.part} (${r.diff > 0 ? "Spieler 1" : "Spieler 2"})`)
+        .map((r) => `${Math.abs(r.diff)}x ${r.part} (${r.diff > 0 ? p1Name : p2Name})`)
         .join(", ")}</div>`;
     }
 
