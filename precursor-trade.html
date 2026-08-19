@@ -213,18 +213,35 @@
       let giveIdx = -1;
       let getIdx = -1;
 
+      // Über alle grundsätzlich gültigen Swaps suchen und NUR einen nehmen,
+      // der auch wirklich min(A) oder min(B) erhöht - nicht nur irgendein
+      // Item verschiebt, das zufällig (mit-)am alten Minimum lag. Bei
+      // Gleichstand mehrerer Teile am Minimum bringt das Anheben von nur
+      // einem davon sonst keinen zusätzlichen Craft.
       outer: for (const gi of bottleneckB) {
-        if (a[gi] <= minA) continue; // A kann das nicht entbehren, ohne selbst zu verlieren
+        if (a[gi] <= minA) continue;
         for (const ri of bottleneckA) {
           if (ri === gi) continue;
-          if (b[ri] <= minB) continue; // B kann das nicht entbehren
-          giveIdx = gi;
-          getIdx = ri;
-          break outer;
+          if (b[ri] <= minB) continue;
+
+          const aTest = [...a];
+          const bTest = [...b];
+          aTest[gi]--;
+          aTest[ri]++;
+          bTest[gi]++;
+          bTest[ri]--;
+          const newMinA = Math.min(...aTest);
+          const newMinB = Math.min(...bTest);
+
+          if (newMinA > minA || newMinB > minB) {
+            giveIdx = gi;
+            getIdx = ri;
+            break outer;
+          }
         }
       }
 
-      if (giveIdx === -1) break; // kein verbessernder Swap mehr gefunden
+      if (giveIdx === -1) break; // kein Swap mehr, der tatsächlich einen Craft bringt
 
       a[giveIdx]--;
       a[getIdx]++;
