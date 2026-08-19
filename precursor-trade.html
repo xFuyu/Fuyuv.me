@@ -190,48 +190,66 @@
     const p1Name = document.getElementById("p1-ign").value.trim() || "Spieler 1";
     const p2Name = document.getElementById("p2-ign").value.trim() || "Spieler 2";
 
-    let diffs = parts.map((_, i) => p1[i] - p2[i]);
+    const p1CraftsBefore = Math.min(...p1);
+    const p2CraftsBefore = Math.min(...p2);
 
-    const trades = [];
-    while (true) {
-      const maxVal = Math.max(...diffs);
-      const minVal = Math.min(...diffs);
-      if (maxVal <= 0 || minVal >= 0) break;
+    // Engpass-basierter Tausch: statt nur die Differenz zwischen den beiden
+    // Spielern zu betrachten, sucht dieser Algorithmus iterativ nach Swaps,
+    // die den eigenen Engpass (das Minimum der 6 Teile = Anzahl möglicher
+    // Crafts) anheben, ohne beim Tauschpartner dessen Engpass zu senken.
+    // Das findet auch Trades, bei denen ein Spieler bei ALLEN Teilen mehr
+    // hat als der andere - reine Differenzbetrachtung würde die übersehen.
+    const a = [...p1];
+    const b = [...p2];
+    const unitTrades = [];
+    let safety = 0;
 
-      const iMax = diffs.indexOf(maxVal);
-      const iMin = diffs.indexOf(minVal);
-      const amount = Math.min(maxVal, -minVal);
+    while (safety++ < 5000) {
+      const minA = Math.min(...a);
+      const minB = Math.min(...b);
+      const bottleneckB = parts.map((_, i) => i).filter((i) => b[i] === minB);
+      const bottleneckA = parts.map((_, i) => i).filter((i) => a[i] === minA);
 
-      trades.push({ give: parts[iMax].label, get: parts[iMin].label, amount, giveIdx: iMax, getIdx: iMin });
+      let giveIdx = -1;
+      let getIdx = -1;
 
-      diffs[iMax] -= amount;
-      diffs[iMin] += amount;
+      outer: for (const gi of bottleneckB) {
+        if (a[gi] <= minA) continue; // A kann das nicht entbehren, ohne selbst zu verlieren
+        for (const ri of bottleneckA) {
+          if (ri === gi) continue;
+          if (b[ri] <= minB) continue; // B kann das nicht entbehren
+          giveIdx = gi;
+          getIdx = ri;
+          break outer;
+        }
+      }
+
+      if (giveIdx === -1) break; // kein verbessernder Swap mehr gefunden
+
+      a[giveIdx]--;
+      a[getIdx]++;
+      b[giveIdx]++;
+      b[getIdx]--;
+      unitTrades.push({ giveIdx, getIdx });
     }
 
-    // Bestände nach den Trades simulieren, um Crafts vorher/nachher zu vergleichen
-    const p1After = [...p1];
-    const p2After = [...p2];
-    trades.forEach((t) => {
-      p1After[t.giveIdx] -= t.amount;
-      p1After[t.getIdx] += t.amount;
-      p2After[t.giveIdx] += t.amount;
-      p2After[t.getIdx] -= t.amount;
+    // Einzel-Swaps zu Trade-Zeilen zusammenfassen
+    const merged = {};
+    unitTrades.forEach((t) => {
+      const key = `${t.giveIdx}-${t.getIdx}`;
+      merged[key] = (merged[key] || 0) + 1;
+    });
+    const trades = Object.entries(merged).map(([key, amount]) => {
+      const [giveIdx, getIdx] = key.split("-").map(Number);
+      return { give: parts[giveIdx].label, get: parts[getIdx].label, amount };
     });
 
-    const craftsBefore = (inv) => Math.min(...inv);
-    const p1CraftsBefore = craftsBefore(p1);
-    const p2CraftsBefore = craftsBefore(p2);
-    const p1CraftsAfter = craftsBefore(p1After);
-    const p2CraftsAfter = craftsBefore(p2After);
-
-    const rest = parts
-      .map((p, i) => ({ part: p.label, diff: diffs[i] }))
-      .filter((r) => r.diff !== 0);
+    const p1CraftsAfter = Math.min(...a);
+    const p2CraftsAfter = Math.min(...b);
 
     const out = document.getElementById("output");
     let html = "";
 
-    // Ergebnis-Zusammenfassung: Crafts vorher -> nachher
     html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1rem">`;
     [
       { name: p1Name, before: p1CraftsBefore, after: p1CraftsAfter },
@@ -248,7 +266,7 @@
     html += `</div>`;
 
     if (trades.length === 0) {
-      html += `<div class="trade-line">Keine sinnvollen Trades gefunden - entweder schon ausgeglichen oder es fehlen Eingaben.</div>`;
+      html += `<div class="trade-line">Keine sinnvollen Trades gefunden - eure Engpässe lassen sich untereinander nicht mehr verbessern.</div>`;
     } else {
       html += trades
         .map(
@@ -256,12 +274,6 @@
             `<div class="trade-line">${p1Name} gibt <b>${t.amount}x ${t.give}</b> &rarr; bekommt <b>${t.amount}x ${t.get}</b></div>`
         )
         .join("");
-    }
-
-    if (rest.length > 0) {
-      html += `<div class="trade-line" style="opacity:0.7">Nicht traden möglich: ${rest
-        .map((r) => `${Math.abs(r.diff)}x ${r.part} (${r.diff > 0 ? p1Name : p2Name})`)
-        .join(", ")}</div>`;
     }
 
     out.innerHTML = html;
