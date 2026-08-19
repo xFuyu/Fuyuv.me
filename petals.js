@@ -20,7 +20,7 @@
     const drift = rand(-18, 50);
 
     // Größe
-    const w = rand(8, 18);
+    const w = rand(8, 19);
     const h = w * rand(0.6, 0.9);
     p.style.width = `${w}px`;
     p.style.height = `${h}px`;
